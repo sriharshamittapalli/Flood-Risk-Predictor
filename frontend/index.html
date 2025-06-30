@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Risk Predictor</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; }
+        h1 { text-align: center; color: #1d4ed8; }
+        .card { background-color: #fff; border-radius: 8px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        h2 { margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #1e40af; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input[type="text"], input[type="email"] { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; border: none; border-radius: 4px; background-color: #2563eb; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #1d4ed8; }
+        button:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        .btn-danger { background-color: #dc2626; } .btn-danger:hover { background-color: #b91c1c; }
+        .result-box, .status-box { margin-top: 1.5rem; padding: 1rem; border-radius: 4px; display: none; }
+        .result-box.risk-Low { background-color: #dcfce7; color: #166534; }
+        .result-box.risk-Medium { background-color: #fef9c3; color: #854d0e; }
+        .result-box.risk-High, .result-box.risk-Very { background-color: #fee2e2; color: #991b1b; }
+        .status-box.success { background-color: #dcfce7; color: #166534; }
+        .status-box.error { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Flood Risk Predictor</h1>
+    <div class="card">
+        <h2>On-Demand Risk Analysis</h2>
+        <div class="form-group"><label for="city-input">City Name</label><input type="text" id="city-input" placeholder="e.g., Fort Worth"></div>
+        <button id="analyze-btn">Check Risk</button>
+        <div class="result-box" id="analysis-result"></div>
+    </div>
+    <div class="card">
+        <h2>Subscribe to Alerts</h2>
+        <div class="form-group"><label for="subscribe-city">City Name</label><input type="text" id="subscribe-city" placeholder="e.g., Fort Worth"></div>
+        <div class="form-group"><label for="subscribe-email">Email Address</label><input type="email" id="subscribe-email" placeholder="you@example.com"></div>
+        <button id="subscribe-btn">Subscribe</button>
+        <div class="status-box" id="subscribe-status"></div>
+    </div>
+    <div class="card">
+        <h2>Unsubscribe from All Alerts</h2>
+        <div class="form-group"><label for="unsubscribe-email">Your Email Address</label><input type="email" id="unsubscribe-email" placeholder="you@example.com"></div>
+        <button id="unsubscribe-btn" class="btn-danger">Unsubscribe From All</button>
+        <div class="status-box" id="unsubscribe-status"></div>
+    </div>
+</div>
+<script>
+    // --- IMPORTANT: CONFIGURE YOUR API ENDPOINT HERE ---
+    const API_INVOKE_URL = 'https://runt0wgiq2.execute-api.us-east-2.amazonaws.com/default';
+    // ---
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const cityInput = document.getElementById('city-input');
+    const analysisResultBox = document.getElementById('analysis-result');
+    const subscribeBtn = document.getElementById('subscribe-btn');
+    const subscribeCityInput = document.getElementById('subscribe-city');
+    const subscribeEmailInput = document.getElementById('subscribe-email');
+    const subscribeStatusBox = document.getElementById('subscribe-status');
+    const unsubscribeBtn = document.getElementById('unsubscribe-btn');
+    const unsubscribeEmailInput = document.getElementById('unsubscribe-email');
+    const unsubscribeStatusBox = document.getElementById('unsubscribe-status');
+
+    // On-Demand Analysis Logic
+    analyzeBtn.addEventListener('click', async () => {
+        const city = cityInput.value.trim();
+        if (!city) { alert('Please enter a city name.'); return; }
+        setLoading(analyzeBtn, 'Analyzing...');
+        analysisResultBox.style.display = 'none';
+        try {
+            const response = await fetch(`${API_INVOKE_URL}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: city }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'An unknown error occurred.');
+            displayAnalysisResult(result);
+        } catch (error) {
+            displayError(analysisResultBox, `Error: ${error.message}`);
+        } finally {
+            setLoading(analyzeBtn, 'Check Risk', false);
+        }
+    });
+
+    // Subscription Logic
+    subscribeBtn.addEventListener('click', async () => {
+        const city = subscribeCityInput.value.trim();
+        const email = subscribeEmailInput.value.trim();
+        if (!city || !email) { alert('Please enter both a city and an email address.'); return; }
+        setLoading(subscribeBtn, 'Subscribing...');
+        try {
+            const response = await fetch(`${API_INVOKE_URL}/subscribe-lambda`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: city, email: email }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'An unknown error occurred.');
+            const successMessage = "Success! A confirmation email has been sent. Please check your inbox (and spam folder) to activate your alerts.";
+            displayStatus(subscribeStatusBox, successMessage, 'success');
+        } catch(error) {
+            displayStatus(subscribeStatusBox, `Error: ${error.message}`, 'error');
+        } finally {
+            setLoading(subscribeBtn, 'Subscribe', false);
+        }
+    });
+
+    // Unsubscribe Logic
+    unsubscribeBtn.addEventListener('click', async () => {
+        const email = unsubscribeEmailInput.value.trim();
+        if (!email) { alert('Please enter your email for unsubscribing.'); return; }
+        setLoading(unsubscribeBtn, 'Unsubscribing...');
+        try {
+            const response = await fetch(`${API_INVOKE_URL}/unsubscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'An unknown error occurred.');
+            displayStatus(unsubscribeStatusBox, result.message, 'success');
+        } catch(error) {
+            displayStatus(unsubscribeStatusBox, `Error: ${error.message}`, 'error');
+        } finally {
+            setLoading(unsubscribeBtn, 'Unsubscribe From All', false);
+        }
+    });
+
+    // Helper Functions
+    function displayAnalysisResult(result) {
+        const riskClass = `risk-${result.risk_level.split(' ')[0]}`;
+        analysisResultBox.className = `result-box ${riskClass}`;
+        analysisResultBox.innerHTML = `<p><strong>Risk Level:</strong> ${result.risk_level}</p><p><strong>Explanation:</strong> ${result.explanation}</p>`;
+        analysisResultBox.style.display = 'block';
+    }
+    function setLoading(button, text, disabled = true) {
+        button.textContent = text;
+        button.disabled = disabled;
+    }
+    function displayStatus(box, message, type) {
+        box.textContent = message;
+        box.className = `status-box ${type}`;
+        box.style.display = 'block';
+    }
+    function displayError(box, message) {
+        box.innerHTML = `<p>${message}</p>`;
+        box.className = 'result-box risk-High';
+        box.style.display = 'block';
+    }
+</script>
+</body>
+</html>
