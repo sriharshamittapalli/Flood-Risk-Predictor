@@ -5,21 +5,6 @@ A serverless, AI-powered application built on AWS that provides real-time flood 
 ## Inspiration
 Flooding is one of the most common and costly natural disasters, affecting communities worldwide. The goal of this project was to create an accessible, proactive tool that could help individuals assess their risk in real-time and receive timely warnings, potentially saving property and lives. This solution leverages the power of serverless computing and generative AI to deliver a scalable and intelligent system.
 
----
-
-## 🎥 Demo Video
-
-[**Link to Your 3-Minute Demo Video Here**]
-
----
-
-## 🌐 Live Demo
-
-You can access the live application here:
-**[Link to Your S3 Website URL Here]**
-
----
-
 ## 👨‍⚖️ Note for Hackathon Judges
 
 **Reasoning:** This application uses Amazon SES, which is currently in a "sandbox" environment for security purposes. In this mode, alerts can only be sent to manually verified email addresses. I have explained clearly in the working demo how the entire process works.
